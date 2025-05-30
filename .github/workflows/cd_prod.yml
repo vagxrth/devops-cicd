@@ -25,13 +25,18 @@ jobs:
             # Install pnpm if not installed
             if ! command -v pnpm &> /dev/null; then
               curl -fsSL https://get.pnpm.io/install.sh | sh -
-              export PNPM_HOME="/root/.local/share/pnpm"
-              export PATH="$PNPM_HOME:$PATH"
             fi
+            
+            # Set up pnpm in current session
+            export PNPM_HOME="/root/.local/share/pnpm"
+            export PATH="$PNPM_HOME:$PATH"
+            
+            # Verify pnpm is accessible
+            $PNPM_HOME/pnpm --version
             
             cd devops-cicd && 
             git pull && 
-            pnpm install && 
-            pnpm run build && 
+            $PNPM_HOME/pnpm install && 
+            $PNPM_HOME/pnpm run build && 
             pm2 restart all
           "
