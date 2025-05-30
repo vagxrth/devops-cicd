@@ -21,4 +21,17 @@ jobs:
 
       - name: Deploy with SSH
         run: |
-          ssh -i ~/.ssh/deploy_key root@64.227.156.33 "cd devops-cicd && git pull && pnpm install && pnpm run build && pm2 restart all"
+          ssh -i ~/.ssh/deploy_key root@64.227.156.33 "
+            # Install pnpm if not installed
+            if ! command -v pnpm &> /dev/null; then
+              curl -fsSL https://get.pnpm.io/install.sh | sh -
+              export PNPM_HOME="/root/.local/share/pnpm"
+              export PATH="$PNPM_HOME:$PATH"
+            fi
+            
+            cd devops-cicd && 
+            git pull && 
+            pnpm install && 
+            pnpm run build && 
+            pm2 restart all
+          "
