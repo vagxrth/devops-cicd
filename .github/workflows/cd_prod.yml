@@ -26,50 +26,59 @@ jobs:
 
       - name: Deploy with SSH
         run: |
-          # Using -t to force pseudo-terminal allocation
-          ssh -i ~/.ssh/deploy_key -t root@64.227.156.33 "
-            set -e
-            echo 'Starting deployment...'
-            
-            echo 'Checking Node.js installation...'
-            if ! command -v node &> /dev/null; then
-              echo 'Installing Node.js...'
-              curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
-              apt-get install -y nodejs
-            fi
+          # Exit on error, but allow commands after pipe to fail
+          set -e
+          set +o pipefail
+          
+          echo 'Starting deployment...'
+          
+          echo 'Checking Node.js installation...'
+          if ! command -v node &> /dev/null; then
+            echo 'Installing Node.js...'
+            curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+            apt-get install -y nodejs
+          fi
 
-            echo 'Checking pnpm installation...'
-            if ! command -v pnpm &> /dev/null; then
-              echo 'Installing pnpm...'
-              npm install -g pnpm
-            fi
+          echo 'Checking pnpm installation...'
+          if ! command -v pnpm &> /dev/null; then
+            echo 'Installing pnpm...'
+            npm install -g pnpm
+          fi
 
-            echo 'Checking PM2 installation...'
-            if ! command -v pm2 &> /dev/null; then
-              echo 'Installing PM2...'
-              npm install -g pm2
-            fi
-            
-            echo 'Navigating to project directory...'
-            cd devops-cicd
-            
-            echo 'Pulling latest changes...'
-            git pull
-            
-            echo 'Cleaning up old processes and cache...'
-            pkill -f 'next build' || true
+          echo 'Checking PM2 installation...'
+          if ! command -v pm2 &> /dev/null; then
+            echo 'Installing PM2...'
+            npm install -g pm2
+          fi
+          
+          echo 'Navigating to project directory...'
+          cd devops-cicd
+          
+          echo 'Pulling latest changes...'
+          git pull
+          
+          echo 'Stopping any running processes...'
+          pm2 stop all 2>/dev/null || true
+          pm2 delete all 2>/dev/null || true
+          
+          echo 'Cleaning up...'
+          if [ -d '.next' ]; then
+            echo 'Removing .next directory...'
             rm -rf .next
+          fi
+          
+          if [ -d 'node_modules/.cache' ]; then
+            echo 'Removing cache...'
             rm -rf node_modules/.cache
-            
-            echo 'Installing dependencies...'
-            timeout 5m pnpm install
-            
-            echo 'Building application...'
-            timeout 5m pnpm run build
-            
-            echo 'Restarting PM2 processes...'
-            pm2 delete all || true
-            pm2 start npm --name 'next-app' -- start
-            
-            echo 'Deployment completed successfully!'
-          "
+          fi
+          
+          echo 'Installing dependencies...'
+          pnpm install
+          
+          echo 'Building application...'
+          pnpm run build
+          
+          echo 'Starting application with PM2...'
+          pm2 start npm --name 'next-app' -- start
+          
+          echo 'Deployment completed successfully!'
