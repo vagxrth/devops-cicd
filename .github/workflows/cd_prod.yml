@@ -9,23 +9,17 @@ jobs:
     name: Deploy
     runs-on: ubuntu-latest
     steps:
-      - name: Install SSH Key
-        uses: shimataro/ssh-key-action@v2
-        with:
-          key: ${{ secrets.P_KEY }}
-          known_hosts: unnecessary
-          if_key_exists: replace
-
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.P_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          eval $(ssh-agent -s)
+          ssh-add ~/.ssh/deploy_key
+          
       - name: Adding Known Hosts
         run: ssh-keyscan -H 64.227.156.33 >> ~/.ssh/known_hosts
-
-      - name: Start SSH Agent and Add Key
-        run: |
-          eval `ssh-agent -s`
-          chmod 600 ~/.ssh/id_rsa
-          ssh-add ~/.ssh/id_rsa
-          ssh-add -l
           
       - name: Deploy with SSH
         run: |
-          ssh -o StrictHostKeyChecking=no -v root@64.227.156.33 "cd devops-cicd && git pull && pnpm install && pnpm run build && pm2 restart all"
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no root@64.227.156.33 "cd devops-cicd && git pull && pnpm install && pnpm run build && pm2 restart all"
