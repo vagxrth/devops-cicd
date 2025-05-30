@@ -19,11 +19,13 @@ jobs:
       - name: Adding Known Hosts
         run: ssh-keyscan -H 64.227.156.33 >> ~/.ssh/known_hosts
 
-      - name: Debug SSH setup
+      - name: Start SSH Agent and Add Key
         run: |
-          ls -la ~/.ssh
+          eval `ssh-agent -s`
+          chmod 600 ~/.ssh/id_rsa
+          ssh-add ~/.ssh/id_rsa
           ssh-add -l
           
       - name: Deploy with SSH
         run: |
-          ssh -v root@64.227.156.33 "cd devops-cicd && git pull && pnpm install && pnpm run build && pm2 restart all"
+          ssh -o StrictHostKeyChecking=no -v root@64.227.156.33 "cd devops-cicd && git pull && pnpm install && pnpm run build && pm2 restart all"
