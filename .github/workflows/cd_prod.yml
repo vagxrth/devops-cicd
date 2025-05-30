@@ -20,40 +20,56 @@ jobs:
           eval $(ssh-agent -s)
           ssh-add ~/.ssh/deploy_key
 
+      - name: Test SSH Connection
+        run: |
+          ssh -i ~/.ssh/deploy_key -v root@64.227.156.33 "echo 'SSH connection test successful'"
+
       - name: Deploy with SSH
         run: |
-          ssh -i ~/.ssh/deploy_key root@64.227.156.33 "
-            # Install Node.js and npm if not present
+          # Using -t to force pseudo-terminal allocation
+          ssh -i ~/.ssh/deploy_key -t root@64.227.156.33 "
+            set -e
+            echo 'Starting deployment...'
+            
+            echo 'Checking Node.js installation...'
             if ! command -v node &> /dev/null; then
+              echo 'Installing Node.js...'
               curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
               apt-get install -y nodejs
             fi
 
-            # Install pnpm globally
+            echo 'Checking pnpm installation...'
             if ! command -v pnpm &> /dev/null; then
+              echo 'Installing pnpm...'
               npm install -g pnpm
             fi
 
-            # Install PM2 globally
+            echo 'Checking PM2 installation...'
             if ! command -v pm2 &> /dev/null; then
+              echo 'Installing PM2...'
               npm install -g pm2
             fi
             
-            cd devops-cicd && 
-            git pull && 
+            echo 'Navigating to project directory...'
+            cd devops-cicd
             
-            # Kill any hanging build processes
+            echo 'Pulling latest changes...'
+            git pull
+            
+            echo 'Cleaning up old processes and cache...'
             pkill -f 'next build' || true
-            
-            # Clean build cache and node_modules
             rm -rf .next
             rm -rf node_modules/.cache
             
-            # Install dependencies and build with a timeout
-            timeout 5m pnpm install &&
-            timeout 5m pnpm run build &&
+            echo 'Installing dependencies...'
+            timeout 5m pnpm install
             
-            # Restart the application with PM2
+            echo 'Building application...'
+            timeout 5m pnpm run build
+            
+            echo 'Restarting PM2 processes...'
             pm2 delete all || true
             pm2 start npm --name 'next-app' -- start
+            
+            echo 'Deployment completed successfully!'
           "
