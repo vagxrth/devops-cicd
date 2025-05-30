@@ -8,6 +8,7 @@ jobs:
   deploy:
     name: Deploy
     runs-on: ubuntu-latest
+    timeout-minutes: 10  # Add overall job timeout
     steps:
       - name: Setup SSH
         run: |
@@ -40,7 +41,19 @@ jobs:
             
             cd devops-cicd && 
             git pull && 
-            pnpm install && 
-            pnpm run build && 
-            pm2 restart all
+            
+            # Kill any hanging build processes
+            pkill -f 'next build' || true
+            
+            # Clean build cache and node_modules
+            rm -rf .next
+            rm -rf node_modules/.cache
+            
+            # Install dependencies and build with a timeout
+            timeout 5m pnpm install &&
+            timeout 5m pnpm run build &&
+            
+            # Restart the application with PM2
+            pm2 delete all || true
+            pm2 start npm --name 'next-app' -- start
           "
