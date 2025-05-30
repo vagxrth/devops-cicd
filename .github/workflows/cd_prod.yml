@@ -2,19 +2,18 @@ name: CD Prod
 on:
   push:
     branches:
-      - "main"
+      - main
 
 jobs:
   deploy:
     name: Deploy
     runs-on: ubuntu-latest
     steps:
-        - name: SSH
-          run: |
-            ssh root@64.227.156.33 
+      - name: SSH
+        run: |
+          ssh root@64.227.156.33 
             cd devops-cicd
             git pull
             pnpm install
             pnpm run build
             pm2 restart all
-        
