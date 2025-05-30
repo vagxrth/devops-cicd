@@ -19,12 +19,11 @@ jobs:
       - name: Adding Known Hosts
         run: ssh-keyscan -H 64.227.156.33 >> ~/.ssh/known_hosts
 
+      - name: Debug SSH setup
+        run: |
+          ls -la ~/.ssh
+          ssh-add -l
+          
       - name: Deploy with SSH
         run: |
-          ssh root@64.227.156.33 '
-          cd devops-cicd &&
-          git pull &&
-          pnpm install &&
-          pnpm run build &&
-          pm2 restart all
-          '
+          ssh -v root@64.227.156.33 "cd devops-cicd && git pull && pnpm install && pnpm run build && pm2 restart all"
