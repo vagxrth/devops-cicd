@@ -71,13 +71,6 @@ jobs:
             echo 'Latest commit:'
             git log -1
             
-            echo 'Managing PM2 process...'
-            if pm2 list | grep -q 'next-app'; then
-              echo 'Stopping existing next-app...'
-              pm2 stop next-app
-              pm2 delete next-app
-            fi
-            
             echo 'Cleaning up...'
             echo 'Removing node_modules...'
             rm -rf node_modules
@@ -90,15 +83,16 @@ jobs:
             pnpm install
             
             echo 'Building application...'
-            pnpm run build
+            NODE_ENV=production pnpm run build
             
-            echo 'Starting application with PM2...'
-            NODE_ENV=production pm2 start npm --name 'next-app' -- start
+            echo 'Restarting all PM2 processes...'
+            pm2 restart all
             
             echo 'Saving PM2 process list...'
             pm2 save
             
-            echo 'Deployment completed successfully!'
             echo 'Current PM2 processes:'
             pm2 list
+            
+            echo 'Deployment completed successfully!'
           "
