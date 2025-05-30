@@ -13,13 +13,12 @@ jobs:
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.P_KEY }}" > ~/.ssh/deploy_key
+          echo "${{ secrets.KNOWN_HOSTS }}" > ~/.ssh/known_hosts
           chmod 600 ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/known_hosts
           eval $(ssh-agent -s)
           ssh-add ~/.ssh/deploy_key
-          
-      - name: Adding Known Hosts
-        run: ssh-keyscan -H 64.227.156.33 >> ~/.ssh/known_hosts
-          
+
       - name: Deploy with SSH
         run: |
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no root@64.227.156.33 "cd devops-cicd && git pull && pnpm install && pnpm run build && pm2 restart all"
+          ssh -i ~/.ssh/deploy_key root@64.227.156.33 "cd devops-cicd && git pull && pnpm install && pnpm run build && pm2 restart all"
